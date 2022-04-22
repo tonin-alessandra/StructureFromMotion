@@ -508,7 +508,9 @@ void BasicSfM::solve()
     {
       if (cam_observation[new_pose_idx].find(co_iter.first) != cam_observation[new_pose_idx].end())
       {
+        // sources
         points0.emplace_back(observations_[2*co_iter.second],observations_[2*co_iter.second + 1]);
+        // destinations
         points1.emplace_back(observations_[2*cam_observation[new_pose_idx][co_iter.first]],
                              observations_[2*cam_observation[new_pose_idx][co_iter.first] + 1]);
       }
@@ -523,9 +525,36 @@ void BasicSfM::solve()
     // the seed_found flag to true
     // Otherwise, test a different [ref_pose_idx, new_pose_idx] pair (while( !seed_found ) loop)
     // The condition here:
-    if( true ) seed_found = true;
+    // if( true ) seed_found = true;
     // should be replaced with the criteria described above
     /////////////////////////////////////////////////////////////////////////////////////////
+
+    
+    cv::Mat E; // essential matrix
+    
+    cv::findHomography(points0, points1, cv::RANSAC, 3, inlier_mask_H);
+    E = cv::findEssentialMat(points0, points1, intrinsics_matrix, cv::RANSAC, 0.999, 1.0, inlier_mask_E);
+    
+    std::cout << inlier_mask_E.size();
+    std::cout << inlier_mask_H.size();
+    
+    if( cv::countNonZero(inlier_mask_E) > cv::countNonZero(inlier_mask_H) ){
+      std::vector<cv::Point2d> src_pts, dst_pts;
+      std::vector<int> conv = (std::vector<int>)inlier_mask_E; // convertion
+      for (int k = 0; k < conv.size(); k++)
+      {
+        if (conv[k] == 1)
+        {
+          src_pts.push_back(points0[k]);
+          dst_pts.push_back(points1[k]);
+        }
+      }
+
+      cv::recoverPose(E, src_pts, dst_pts, intrinsics_matrix, init_r_mat, init_t);
+      seed_found = true;
+    }
+  
+    
   }
 
   // Initialize the first optimized poses, by integrating them into the registration
