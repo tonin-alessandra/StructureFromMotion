@@ -123,7 +123,7 @@ void FeatureMatcher::exhaustiveMatching()
       {
         best_model = conv;
       }
-      
+
       for (int h = 0; h < best_model.size(); h++)
       {
         if (best_model[h] == 1)
