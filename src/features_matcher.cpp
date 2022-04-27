@@ -57,7 +57,7 @@ void FeatureMatcher::extractFeatures()
     // it into feats_colors_[i] vector
     /////////////////////////////////////////////////////////////////////////////////////////ù
 
-    cv::Ptr<cv::SIFT> sift_detector = cv::SIFT::create();
+    cv::Ptr<cv::SIFT> sift_detector = cv::SIFT::create(0, 3, 0.02, 15);
     sift_detector->detectAndCompute(img, cv::Mat(), features_[i], descriptors_[i]);
     cv::Vec3b tmp_color;
     for (int j = 0; j < features_[i].size(); j++)
@@ -90,30 +90,38 @@ void FeatureMatcher::exhaustiveMatching()
 
       cv::Ptr<cv::BFMatcher> bf_matcher = cv::BFMatcher::create(cv::NORM_L2, false);
 
-      bf_matcher->match(descriptors_[i], descriptors_[j], matches);
+      std::vector<std::vector<cv::DMatch>> k_matches;
+      bf_matcher->knnMatch(descriptors_[i], descriptors_[j], k_matches, 2);
+
+      // Perform ratio test to improve quality of matches
+      std::vector<cv::DMatch> good_matches;
+      const float ratio = 0.6; // 0.8 in Lowe's paper
+      for (int a = 0; a < k_matches.size(); a++)
+      {
+        if (k_matches[a][0].distance < ratio * k_matches[a][1].distance)
+        {
+          good_matches.push_back(k_matches[a][0]);
+        }
+      }
 
       std::vector<cv::Point2f> src_pts;
       std::vector<cv::Point2f> dst_pts;
       std::vector<int> inliers_h;
       cv::Mat inliers_e;
-      for (int s = 0; s < matches.size(); s++)
+      for (int s = 0; s < good_matches.size(); s++)
       {
-        src_pts.push_back(features_[i][matches[s].queryIdx].pt);
-        dst_pts.push_back(features_[j][matches[s].trainIdx].pt);
+        src_pts.push_back(features_[i][good_matches[s].queryIdx].pt);
+        dst_pts.push_back(features_[j][good_matches[s].trainIdx].pt);
       }
 
       cv::findHomography(src_pts, dst_pts, cv::RANSAC, 3, inliers_h);
       cv::findEssentialMat(src_pts, dst_pts, new_intrinsics_matrix_, cv::RANSAC, 0.999, 1.0, inliers_e);
 
-      std::cout << inliers_e.size() << "\n";
-
-      std::vector<int> conv = (std::vector<int>)inliers_e;
-
-      std::cout << conv.size() << "\n";
+      std::vector<int> inliers_E = (std::vector<int>)inliers_e;
 
       std::vector<int> best_model;
       int count_h = cv::countNonZero(inliers_h);
-      int count_e = cv::countNonZero(conv);
+      int count_e = cv::countNonZero(inliers_E);
 
       if (count_h > count_e && count_h > 10)
       {
@@ -121,17 +129,20 @@ void FeatureMatcher::exhaustiveMatching()
       }
       else if (count_e > count_h && count_e > 10)
       {
-        best_model = conv;
+        best_model = inliers_E;
       }
 
       for (int h = 0; h < best_model.size(); h++)
       {
         if (best_model[h] == 1)
         {
-          inlier_matches.push_back(matches[h]);
+          inlier_matches.push_back(good_matches[h]);
         }
       }
-      setMatches(i, j, inlier_matches);
+      if (inlier_matches.size() != 0)
+      {
+        setMatches(i, j, inlier_matches);
+      }
     }
   }
 }

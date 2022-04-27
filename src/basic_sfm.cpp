@@ -605,8 +605,8 @@ void BasicSfM::solve()
       cv::recoverPose(E, src_pts, dst_pts, intrinsics_matrix, init_r_mat, init_t);
       seed_found = true;
 
-      /*points0 = src_pts;
-      points1 = dst_pts;*/
+      points0 = src_pts;
+      points1 = dst_pts;
     }
   }
 
@@ -840,32 +840,15 @@ void BasicSfM::bundleAdjustmentIter(int new_cam_idx)
 
         // first cost function and residual block for the cameras parameters
 
-        ceres::CostFunction *cost_function_cam =
+        ceres::CostFunction *cost_function =
             ReprojectionError::Create(
                 observations_[2 * i_obs + 0],
                 observations_[2 * i_obs + 1]);
 
-        problem.AddResidualBlock(cost_function_cam,
+        problem.AddResidualBlock(cost_function,
                                  new ceres::CauchyLoss(2 * max_reproj_err_),
                                  cameraBlockPtr(pose_index_[i_obs]),
                                  pointBlockPtr(point_index_[i_obs]));
-
-        /*double *camera_block = cameraBlockPtr(pose_index_[i_obs]);
-        cout << camera_block[0] << " , " << camera_block[1] << " , " << camera_block[2] << "\n";*/
-
-        // another cost function and residual block for the points parameters
-        /*ceres::CostFunction *cost_function_pt =
-            PointReprojectionError::Create(
-                // camera r params
-                camera_block[0], camera_block[1], camera_block[2],
-                // camera t params
-                camera_block[3], camera_block[4], camera_block[5],
-                observations_[2 * i_obs + 0],
-                observations_[2 * i_obs + 1]);
-
-        problem.AddResidualBlock(cost_function_pt,
-                                 new ceres::CauchyLoss(2 * max_reproj_err_),
-                                 pointBlockPtr(point_index_[i_obs]));*/
       }
     }
 
