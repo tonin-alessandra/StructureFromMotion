@@ -123,11 +123,11 @@ void FeatureMatcher::exhaustiveMatching()
       int count_h = cv::countNonZero(inliers_h);
       int count_e = cv::countNonZero(inliers_E);
 
-      if (count_h > count_e && count_h > 10)
+      if (count_h > count_e && count_h > 5)
       {
         best_model = inliers_h;
       }
-      else if (count_e > count_h && count_e > 10)
+      else if (count_e > count_h && count_e > 5)
       {
         best_model = inliers_E;
       }
@@ -139,6 +139,7 @@ void FeatureMatcher::exhaustiveMatching()
           inlier_matches.push_back(good_matches[h]);
         }
       }
+
       if (inlier_matches.size() != 0)
       {
         setMatches(i, j, inlier_matches);
