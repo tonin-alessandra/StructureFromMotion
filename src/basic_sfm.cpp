@@ -543,6 +543,8 @@ void BasicSfM::solve()
 
   while (!seed_found)
   {
+    points0.clear();
+    points1.clear();
     int max_corr = -1;
     for (int r = 0; r < num_poses_; r++)
     {
@@ -550,13 +552,19 @@ void BasicSfM::solve()
       {
         if (!already_tested_pair(r, c) && corr(r, c) > max_corr)
         {
-          already_tested_pair(r, c) = 1;
           max_corr = corr(r, c);
           ref_pose_idx = r;
           new_pose_idx = c;
         }
       }
     }
+
+    if (max_corr < 0)
+    {
+      std::cout << "No seed pair found, exiting" << std::endl;
+      return;
+    }
+    already_tested_pair(ref_pose_idx, new_pose_idx) = 1;
 
     for (auto const &co_iter : cam_observation[ref_pose_idx])
     {
@@ -604,9 +612,6 @@ void BasicSfM::solve()
 
       cv::recoverPose(E, src_pts, dst_pts, intrinsics_matrix, init_r_mat, init_t);
       seed_found = true;
-
-      points0 = src_pts;
-      points1 = dst_pts;
     }
   }
 
