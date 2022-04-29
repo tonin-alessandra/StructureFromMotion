@@ -8,6 +8,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/utils/filesystem.hpp>
 
+#include <opencv2/xfeatures2d.hpp>
+
 namespace
 {
   template <typename T>
@@ -63,9 +65,9 @@ void FeatureMatcher::extractFeatures()
     orb_detector->detect(img, features_[i]);
 
     //-----------------------------------------------------
-    // descriptor = cv::xfeatures2d::BEBLID_create(0.75)
+    cv::Ptr<cv::xfeatures2d::BEBLID> orb_extractor = cv::xfeatures2d::BEBLID::create(0.75f);
 
-    cv::Ptr<cv::DescriptorExtractor> orb_extractor = cv::ORB::create();
+    // cv::Ptr<cv::DescriptorExtractor> orb_extractor = cv::ORB::create();
     orb_extractor->compute(img, features_[i], descriptors_[i]);
 
     //----------------------------

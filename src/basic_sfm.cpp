@@ -603,6 +603,7 @@ void BasicSfM::solve()
       }
 
       cv::recoverPose(E, src_pts, dst_pts, intrinsics_matrix, init_r_mat, init_t);
+      // cv::recoverPose(E, points0, points1, intrinsics_matrix, init_r_mat, init_t, inlier_mask_E);
       seed_found = true;
     }
   }
