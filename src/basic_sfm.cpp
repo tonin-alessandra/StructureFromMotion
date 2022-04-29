@@ -604,9 +604,6 @@ void BasicSfM::solve()
 
       cv::recoverPose(E, src_pts, dst_pts, intrinsics_matrix, init_r_mat, init_t);
       seed_found = true;
-
-      points0 = src_pts;
-      points1 = dst_pts;
     }
   }
 
