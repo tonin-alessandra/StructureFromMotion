@@ -57,7 +57,7 @@ void FeatureMatcher::extractFeatures()
     // it into feats_colors_[i] vector
     /////////////////////////////////////////////////////////////////////////////////////////ù
 
-    cv::Ptr<cv::SIFT> sift_detector = cv::SIFT::create(0, 3, 0.02, 15);
+    cv::Ptr<cv::ORB> sift_detector = cv::ORB::create(10000, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, 20);
     sift_detector->detectAndCompute(img, cv::Mat(), features_[i], descriptors_[i]);
     cv::Vec3b tmp_color;
     for (int j = 0; j < features_[i].size(); j++)
@@ -88,21 +88,24 @@ void FeatureMatcher::exhaustiveMatching()
       // (i.e., geomatrically verified matches) is small (say <= 10 matches)
       /////////////////////////////////////////////////////////////////////////////////////////
 
-      cv::Ptr<cv::BFMatcher> bf_matcher = cv::BFMatcher::create(cv::NORM_L2, false);
+      cv::Ptr<cv::BFMatcher> bf_matcher = cv::BFMatcher::create(cv::NORM_HAMMING, false);
 
+      //bf_matcher->match(descriptors_[i], descriptors_[j], matches);
+
+      
       std::vector<std::vector<cv::DMatch>> k_matches;
       bf_matcher->knnMatch(descriptors_[i], descriptors_[j], k_matches, 2);
 
       // Perform ratio test to improve quality of matches
       std::vector<cv::DMatch> good_matches;
       const float ratio = 0.6; // 0.8 in Lowe's paper
-      for (int a = 0; a < k_matches.size(); a++)
-      {
-        if (k_matches[a][0].distance < ratio * k_matches[a][1].distance)
-        {
+      for (int a = 0; a < k_matches.size(); a++){
+        if (k_matches[a][0].distance < ratio * k_matches[a][1].distance){
           good_matches.push_back(k_matches[a][0]);
         }
       }
+      
+
 
       std::vector<cv::Point2f> src_pts;
       std::vector<cv::Point2f> dst_pts;
@@ -123,25 +126,24 @@ void FeatureMatcher::exhaustiveMatching()
       int count_h = cv::countNonZero(inliers_h);
       int count_e = cv::countNonZero(inliers_E);
 
-      if (count_h > count_e && count_h > 5)
-      {
+      if (count_h > count_e && count_h > 5){
         best_model = inliers_h;
       }
-      else if (count_e > count_h && count_e > 5)
-      {
+      else if (count_e > count_h && count_e > 5){
         best_model = inliers_E;
       }
 
-      for (int h = 0; h < best_model.size(); h++)
-      {
+      for (int h = 0; h < best_model.size(); h++){
         if (best_model[h] == 1)
         {
           inlier_matches.push_back(good_matches[h]);
         }
       }
 
-      if (inlier_matches.size() != 0)
-      {
+      // info
+      std::cout << "Inliers: " << inlier_matches.size() << "\n" << std::endl;
+
+      if (inlier_matches.size() != 0){
         setMatches(i, j, inlier_matches);
       }
     }
