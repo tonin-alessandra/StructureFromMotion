@@ -57,7 +57,7 @@ void FeatureMatcher::extractFeatures()
     // it into feats_colors_[i] vector
     /////////////////////////////////////////////////////////////////////////////////////////ù
 
-    cv::Ptr<cv::ORB> sift_detector = cv::ORB::create(10000, 1.2f, 8, 31, 0, 2, cv::ORB::HARRIS_SCORE, 31, 20);
+    cv::Ptr<cv::SIFT> sift_detector = cv::SIFT::create(0, 26, 0.04f, 10.0, 1.1f);
     sift_detector->detectAndCompute(img, cv::Mat(), features_[i], descriptors_[i]);
     cv::Vec3b tmp_color;
     for (int j = 0; j < features_[i].size(); j++)
@@ -88,14 +88,16 @@ void FeatureMatcher::exhaustiveMatching()
       // (i.e., geomatrically verified matches) is small (say <= 10 matches)
       /////////////////////////////////////////////////////////////////////////////////////////
 
-      cv::Ptr<cv::BFMatcher> bf_matcher = cv::BFMatcher::create(cv::NORM_HAMMING, false);
+      cv::Ptr<cv::BFMatcher> bf_matcher = cv::BFMatcher::create(cv::NORM_L2, false);
 
-      //bf_matcher->match(descriptors_[i], descriptors_[j], matches);
+
+      bf_matcher->match(descriptors_[i], descriptors_[j], matches);
 
       
-      std::vector<std::vector<cv::DMatch>> k_matches;
-      bf_matcher->knnMatch(descriptors_[i], descriptors_[j], k_matches, 2);
+      //std::vector<std::vector<cv::DMatch>> k_matches;
+      //bf_matcher->knnMatch(descriptors_[i], descriptors_[j], k_matches, 2);
 
+      /*
       // Perform ratio test to improve quality of matches
       std::vector<cv::DMatch> good_matches;
       const float ratio = 0.6; // 0.8 in Lowe's paper
@@ -104,17 +106,17 @@ void FeatureMatcher::exhaustiveMatching()
           good_matches.push_back(k_matches[a][0]);
         }
       }
-      
+      */
 
 
       std::vector<cv::Point2f> src_pts;
       std::vector<cv::Point2f> dst_pts;
       std::vector<int> inliers_h;
       cv::Mat inliers_e;
-      for (int s = 0; s < good_matches.size(); s++)
+      for (int s = 0; s < matches.size(); s++)
       {
-        src_pts.push_back(features_[i][good_matches[s].queryIdx].pt);
-        dst_pts.push_back(features_[j][good_matches[s].trainIdx].pt);
+        src_pts.push_back(features_[i][matches[s].queryIdx].pt);
+        dst_pts.push_back(features_[j][matches[s].trainIdx].pt);
       }
 
       cv::findHomography(src_pts, dst_pts, cv::RANSAC, 3, inliers_h);
@@ -126,17 +128,17 @@ void FeatureMatcher::exhaustiveMatching()
       int count_h = cv::countNonZero(inliers_h);
       int count_e = cv::countNonZero(inliers_E);
 
-      if (count_h > count_e && count_h > 5){
+      if (count_h > count_e && count_h > 250){
         best_model = inliers_h;
       }
-      else if (count_e > count_h && count_e > 5){
+      else if (count_e > count_h && count_e > 250){
         best_model = inliers_E;
       }
 
       for (int h = 0; h < best_model.size(); h++){
         if (best_model[h] == 1)
         {
-          inlier_matches.push_back(good_matches[h]);
+          inlier_matches.push_back(matches[h]);
         }
       }
 
