@@ -89,28 +89,9 @@ void FeatureMatcher::exhaustiveMatching()
       /////////////////////////////////////////////////////////////////////////////////////////
 
       cv::Ptr<cv::BFMatcher> bf_matcher = cv::BFMatcher::create(cv::NORM_L2, false);
-
-
       bf_matcher->match(descriptors_[i], descriptors_[j], matches);
 
-      
-      //std::vector<std::vector<cv::DMatch>> k_matches;
-      //bf_matcher->knnMatch(descriptors_[i], descriptors_[j], k_matches, 2);
-
-      /*
-      // Perform ratio test to improve quality of matches
-      std::vector<cv::DMatch> good_matches;
-      const float ratio = 0.6; // 0.8 in Lowe's paper
-      for (int a = 0; a < k_matches.size(); a++){
-        if (k_matches[a][0].distance < ratio * k_matches[a][1].distance){
-          good_matches.push_back(k_matches[a][0]);
-        }
-      }
-      */
-
-
-      std::vector<cv::Point2f> src_pts;
-      std::vector<cv::Point2f> dst_pts;
+      std::vector<cv::Point2f> src_pts, dst_pts;
       std::vector<int> inliers_h;
       cv::Mat inliers_e;
       for (int s = 0; s < matches.size(); s++)
@@ -122,30 +103,34 @@ void FeatureMatcher::exhaustiveMatching()
       cv::findHomography(src_pts, dst_pts, cv::RANSAC, 3, inliers_h);
       cv::findEssentialMat(src_pts, dst_pts, new_intrinsics_matrix_, cv::RANSAC, 0.999, 1.0, inliers_e);
 
+      // convert type to have only vector<int>
       std::vector<int> inliers_E = (std::vector<int>)inliers_e;
 
       std::vector<int> best_model;
       int count_h = cv::countNonZero(inliers_h);
       int count_e = cv::countNonZero(inliers_E);
 
-      if (count_h > count_e && count_h > 250){
+      // retrieve the best model
+      if (count_h > count_e && count_h > 250)
+      {
         best_model = inliers_h;
       }
-      else if (count_e > count_h && count_e > 250){
+      else if (count_e > count_h && count_e > 250)
+      {
         best_model = inliers_E;
       }
 
-      for (int h = 0; h < best_model.size(); h++){
+      // consider only the inlier matches
+      for (int h = 0; h < best_model.size(); h++)
+      {
         if (best_model[h] == 1)
         {
           inlier_matches.push_back(matches[h]);
         }
       }
 
-      // info
-      std::cout << "Inliers: " << inlier_matches.size() << "\n" << std::endl;
-
-      if (inlier_matches.size() != 0){
+      if (inlier_matches.size() != 0)
+      {
         setMatches(i, j, inlier_matches);
       }
     }

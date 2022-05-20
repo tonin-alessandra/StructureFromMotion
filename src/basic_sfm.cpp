@@ -601,6 +601,7 @@ void BasicSfM::solve()
       std::vector<cv::Point2d> src_pts, dst_pts;
       std::vector<int> inliers_E = (std::vector<int>)inlier_mask_E;
 
+      // filter source and destination points according to the inliersmask, before feeding them into recoverPose
       for (int k = 0; k < inliers_E.size(); k++)
       {
         if (inliers_E[k] == 1)
@@ -609,7 +610,6 @@ void BasicSfM::solve()
           dst_pts.push_back(points1[k]);
         }
       }
-
       cv::recoverPose(E, src_pts, dst_pts, intrinsics_matrix, init_r_mat, init_t);
       seed_found = true;
     }
@@ -843,12 +843,9 @@ void BasicSfM::bundleAdjustmentIter(int new_cam_idx)
         // while the point position blocks have size (point_block_size_) of 3 elements.
         ////////////////////////////////////////////////////////////////////////////////////////
 
-        // first cost function and residual block for the cameras parameters
-
-        ceres::CostFunction *cost_function =
-            ReprojectionError::Create(
-                observations_[2 * i_obs + 0],
-                observations_[2 * i_obs + 1]);
+        ceres::CostFunction *cost_function = ReprojectionError::Create(
+            observations_[2 * i_obs + 0],
+            observations_[2 * i_obs + 1]);
 
         problem.AddResidualBlock(cost_function,
                                  new ceres::CauchyLoss(2 * max_reproj_err_),
